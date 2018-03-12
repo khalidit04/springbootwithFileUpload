@@ -14,14 +14,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Controller
+@RequestMapping(value = "/")
 public class UploadController {
 
-    private static final String BASE_PATH="/images";
+    private static final String BASE_PATH="images";
 
     @Autowired
     private ImageService imageService;
@@ -72,4 +77,37 @@ public class UploadController {
         }
 
     }
+
+
+
+    @RequestMapping(method = RequestMethod.POST,value = "images/upload")
+    public String singleFileUpload(@RequestParam("filename") MultipartFile file,
+                                   RedirectAttributes redirectAttributes) {
+
+        if (file.isEmpty()) {
+            redirectAttributes.addFlashAttribute("message", "Please select a file to upload");
+            return "redirect:uploadStatus";
+        }
+
+            try {
+                imageService.createImage(file);
+                final URI locationURI=new URI("/").resolve(file.getOriginalFilename()+"/raw");
+
+                redirectAttributes.addFlashAttribute("message",
+                        "You successfully uploaded '" + file.getOriginalFilename() + "'");
+            } catch (IOException | URISyntaxException e) {
+                e.printStackTrace();
+                redirectAttributes.addFlashAttribute("message",
+                        "Failed to upload '" + file.getOriginalFilename() + "'");
+            }
+
+
+        return "redirect:/uploadStatus";
+    }
+
+    @GetMapping("/uploadStatus")
+    public String uploadStatus() {
+        return "uploadStatus";
+    }
+
 }
