@@ -1,6 +1,8 @@
 package com.bookm.bookmanager;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -49,21 +51,6 @@ public class UploadController {
         return "index";
     }
 
-    @RequestMapping(method = RequestMethod.POST,value = BASE_PATH)
-    @ResponseBody
-    public ResponseEntity<?> createImageFile(@RequestParam("file")MultipartFile file, HttpServletRequest request){
-
-        try {
-            imageService.createImage(file);
-            final URI locationURI=new URI(request.getRequestURL().toString()+"/").resolve(file.getOriginalFilename()+"/raw");
-
-            return ResponseEntity.created(locationURI).body("successfully upload"+file.getOriginalFilename());
-        } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload"+file.getOriginalFilename()+"=>"+e.getMessage());
-        }
-    }
-
 
     @RequestMapping(method = RequestMethod.DELETE,value=BASE_PATH+"/"+FILE_NAME)
     @ResponseBody
@@ -81,8 +68,8 @@ public class UploadController {
 
 
     @RequestMapping(method = RequestMethod.POST,value = "images/upload")
-    public String singleFileUpload(@RequestParam("filename") MultipartFile file,
-                                   RedirectAttributes redirectAttributes) {
+    public String uploadImage(@RequestParam("filename") MultipartFile file,
+                              RedirectAttributes redirectAttributes) {
 
         if (file.isEmpty()) {
             redirectAttributes.addFlashAttribute("message", "Please select a file to upload");
@@ -109,5 +96,12 @@ public class UploadController {
     public String uploadStatus() {
         return "uploadStatus";
     }
-
+    @Bean
+    public AsynContextInitializer asynContextListener(){
+        return new AsynContextInitializer();
+    }
+    @Bean
+    public ServletRegistrationBean servletRegistrationBean(){
+        return new ServletRegistrationBean<>(new AsyncWebHandler(),"/asyncHandle/*");
+    }
 }
